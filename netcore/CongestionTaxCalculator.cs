@@ -14,25 +14,34 @@ public class CongestionTaxCalculator
     {
         DateTime intervalStart = dates[0];
         int totalFee = 0;
+        int highestFeeInInterval = 0;
         foreach (DateTime date in dates)
         {
             int nextFee = GetTollFee(date, vehicle);
-            int tempFee = GetTollFee(intervalStart, vehicle);
 
-            long diffInMillies = date.Millisecond - intervalStart.Millisecond;
-            long minutes = diffInMillies / 1000 / 60;
+            // Calculate the time difference in minutes
+            TimeSpan timeDifference = date - intervalStart;
+            double minutes = timeDifference.TotalMinutes;
 
-            if (minutes <= 60)
+            if (minutes <= 60.0)
             {
-                if (totalFee > 0) totalFee -= tempFee;
-                if (nextFee >= tempFee) tempFee = nextFee;
-                totalFee += tempFee;
+                if (nextFee > highestFeeInInterval)
+                {
+                    highestFeeInInterval = nextFee;
+                }
             }
             else
             {
-                totalFee += nextFee;
+                totalFee += highestFeeInInterval;
+                highestFeeInInterval = nextFee; // Reset the highest fee for the next interval
+                intervalStart = date; // Reset the interval start for the next 60-minute period
             }
         }
+
+        // Add the highest fee from the last interval to the total fee
+        totalFee += highestFeeInInterval;
+
+        // Cap the total fee at 60 SEK
         if (totalFee > 60) totalFee = 60;
         return totalFee;
     }
@@ -74,7 +83,8 @@ public class CongestionTaxCalculator
         int month = date.Month;
         int day = date.Day;
 
-        if (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday) return true;
+        if (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday) 
+            return true;
 
         if (year == 2013)
         {
@@ -100,6 +110,8 @@ public class CongestionTaxCalculator
         Emergency = 2,
         Diplomat = 3,
         Foreign = 4,
-        Military = 5
+        Military = 5,
+        Bus = 6
+
     }
 }
